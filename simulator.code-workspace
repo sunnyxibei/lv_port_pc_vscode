@@ -27,8 +27,15 @@
 			"lv_demos.h": "c",
 			"lvgl.h": "c",
 			"lv_drv_conf.h": "c",
-			"stdlib.h": "c"
+			"stdlib.h": "c",
+			"__availability": "c",
+			"charconv": "c",
+			"string": "c",
+			"bitset": "c",
+			"x11.h": "c"
 		},
+		"cmake.options.statusBarVisibility": "visible",
+		"cmake.useCMakePresets": "auto",
 	},
 	// tasks.json section
 	"tasks": {
@@ -61,12 +68,13 @@
 		"version": "0.2.0",
 		"configurations": [
 			{
-				"name": "Debug LVGL demo with gdb",
+				"name": "Debug LVGL demo with lldb",
 				"type": "cppdbg",
 				"request": "launch",
 			        "program": "${workspaceFolder}/build/bin/demo",
 				"args": [],
 				"cwd": "${fileDirname}",
+				"MIMode": "lldb",
 				"preLaunchTask": "Build",
 				"stopAtEntry": false,
 			},
