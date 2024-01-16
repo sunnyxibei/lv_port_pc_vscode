@@ -16,11 +16,11 @@
 #include "lvgl/examples/lv_examples.h"
 #include "lvgl/demos/lv_demos.h"
 #if USE_SDL
-  #define SDL_MAIN_HANDLED /*To fix SDL's "undefined reference to WinMain" issue*/
-  #include <SDL2/SDL.h>
-  #include "lv_drivers/sdl/sdl.h"
+#define SDL_MAIN_HANDLED /*To fix SDL's "undefined reference to WinMain" issue*/
+#include <SDL2/SDL.h>
+#include "lv_drivers/sdl/sdl.h"
 #elif USE_X11
-  #include "lv_drivers/x11/x11.h"
+#include "lv_drivers/x11/x11.h"
 #endif
 // #include "lv_drivers/display/monitor.h"
 // #include "lv_drivers/indev/mouse.h"
@@ -40,7 +40,9 @@
  **********************/
 static void hal_init(void);
 static void hal_deinit(void);
-static void* tick_thread(void *data);
+static void *tick_thread(void *data);
+
+static void my_ui_init(void);
 
 /**********************
  *  STATIC VARIABLES
@@ -162,6 +164,8 @@ static void user_image_demo()
 }
 #endif
 
+#define LV_COLOR_LIST_BTN_BG lv_color_hex(0x74D0CB)
+
 int main(int argc, char **argv)
 {
   (void)argc; /*Unused*/
@@ -173,33 +177,36 @@ int main(int argc, char **argv)
   /*Initialize the HAL (display, input devices, tick) for LVGL*/
   hal_init();
 
-//  lv_example_switch_1();
-//  lv_example_calendar_1();
-//  lv_example_btnmatrix_2();
-//  lv_example_checkbox_1();
-//  lv_example_colorwheel_1();
-//  lv_example_chart_6();
-//  lv_example_table_2();
-//  lv_example_scroll_2();
-//  lv_example_textarea_1();
-//  lv_example_msgbox_1();
-//  lv_example_dropdown_2();
-//  lv_example_btn_1();
-//  lv_example_scroll_1();
-//  lv_example_tabview_1();
-//  lv_example_tabview_1();
-//  lv_example_flex_3();
-//  lv_example_label_1();
+  //  lv_example_switch_1();
+  //  lv_example_calendar_1();
+  //  lv_example_btnmatrix_2();
+  //  lv_example_checkbox_1();
+  //  lv_example_colorwheel_1();
+  //  lv_example_chart_6();
+  //  lv_example_table_2();
+  //  lv_example_scroll_2();
+  //  lv_example_textarea_1();
+  //  lv_example_msgbox_1();
+  //  lv_example_dropdown_2();
+  //  lv_example_btn_1();
+  //  lv_example_scroll_1();
+  //  lv_example_tabview_1();
+  //  lv_example_tabview_1();
+  //  lv_example_flex_3();
+  //  lv_example_label_1();
 
-  lv_demo_widgets();
-//  lv_demo_keypad_encoder();
-//  lv_demo_benchmark();
-//  lv_demo_stress();
-//  lv_demo_music();
+  // lv_demo_widgets();
+  my_ui_init();
 
-//  user_image_demo();
+  //  lv_demo_keypad_encoder();
+  //  lv_demo_benchmark();
+  //  lv_demo_stress();
+  //  lv_demo_music();
 
-  while(1) {
+  //  user_image_demo();
+
+  while (1)
+  {
     /* Periodically call the lv_task handler.
      * It could be done in a timer interrupt or an OS task too.*/
     lv_timer_handler();
@@ -208,6 +215,257 @@ int main(int argc, char **argv)
 
   hal_deinit();
   return 0;
+}
+
+lv_obj_t *parentObj;
+lv_obj_t *childObj;
+lv_obj_t *right_Roller;
+
+static void roller_cb(lv_event_t *event)
+{
+  // 获取选中item index
+  lv_obj_t *target = lv_event_get_target(event);
+  printf("%d ", lv_roller_get_selected(target));
+
+  // 获取选中item str
+  char buf[2];
+  lv_roller_get_selected_str(target, buf, sizeof(buf));
+  printf("%s \n", buf);
+}
+
+int count = 0;
+
+static void click_cb(lv_event_t *event)
+{
+  lv_obj_t *target = lv_event_get_target(event);
+  if (target == parentObj)
+  {
+    printf("父控件点击\r\n");
+    lv_obj_align(target, LV_ALIGN_CENTER, 0, 0);
+  }
+  else if (target == childObj)
+  {
+    printf("子控件点击\r\n");
+    lv_obj_align(target, LV_ALIGN_RIGHT_MID, 200, 0);
+  }
+}
+
+lv_obj_t *fan_Checkbox;
+lv_obj_t *fan_Bar;
+lv_obj_t *fan_Led;
+lv_obj_t *lv_List;
+lv_obj_t *right_Title;
+lv_obj_t *right_Arc;
+lv_obj_t *right_Arc1;
+
+static void arc_cb(lv_event_t *event)
+{
+  lv_obj_t *target = lv_event_get_target(event);
+  int value = lv_arc_get_value(target);
+  printf("Arc 拖动进度：%d \n", value);
+  lv_arc_set_value(right_Arc, value);
+}
+
+static void list_item_cb(lv_event_t *event)
+{
+  lv_obj_t *target = lv_event_get_target(event);
+  lv_label_set_text(right_Title, lv_list_get_btn_text(lv_List, target));
+  lv_obj_add_state(target, LV_STATE_FOCUS_KEY);
+}
+
+static void value_change_cb(lv_event_t *event)
+{
+  lv_event_code_t code = lv_event_get_code(event);
+  if (code == LV_EVENT_VALUE_CHANGED)
+  {
+    if (lv_obj_has_state(fan_Checkbox, LV_STATE_CHECKED))
+    {
+      printf("复选框选中\n");
+      lv_bar_set_value(fan_Bar, 80, LV_ANIM_ON);
+      lv_led_toggle(fan_Led);
+    }
+    else
+    {
+      printf("复选框取消选中\n");
+      lv_bar_set_value(fan_Bar, 50, LV_ANIM_ON);
+      lv_led_toggle(fan_Led);
+    }
+  }
+}
+
+static void my_ui_init(void)
+{
+  int src_act_width = lv_obj_get_width(lv_scr_act());
+  int src_act_height = lv_obj_get_height(lv_scr_act());
+
+  // lv_obj_t *left_Container = lv_obj_create(lv_scr_act());
+  // lv_obj_set_size(left_Container, 600, src_act_height);
+  // lv_obj_align(left_Container, LV_ALIGN_LEFT_MID, 6, 6);
+  // lv_obj_update_layout(left_Container);
+
+  lv_List = lv_list_create(lv_scr_act());
+  lv_obj_set_size(lv_List, 560, src_act_height - 48);
+  lv_list_add_text(lv_List, "File");
+  lv_obj_update_layout(lv_List);
+
+  lv_obj_t *btn = lv_list_add_btn(lv_List, LV_SYMBOL_SD_CARD, "New");
+  lv_obj_set_style_bg_color(btn, LV_COLOR_LIST_BTN_BG, LV_STATE_FOCUS_KEY);
+  lv_obj_add_event_cb(btn, list_item_cb, LV_EVENT_CLICKED, NULL);
+
+  btn = lv_list_add_btn(lv_List, LV_SYMBOL_EYE_OPEN, "Open");
+  lv_obj_add_event_cb(btn, list_item_cb, LV_EVENT_CLICKED, NULL);
+  lv_obj_set_style_bg_color(btn, LV_COLOR_LIST_BTN_BG, LV_STATE_FOCUS_KEY);
+
+  btn = lv_list_add_btn(lv_List, LV_SYMBOL_SAVE, "Save");
+  lv_obj_add_event_cb(btn, list_item_cb, LV_EVENT_CLICKED, NULL);
+  lv_obj_set_style_bg_color(btn, LV_COLOR_LIST_BTN_BG, LV_STATE_FOCUS_KEY);
+
+  btn = lv_list_add_btn(lv_List, LV_SYMBOL_DIRECTORY, "Delete");
+  lv_obj_add_event_cb(btn, list_item_cb, LV_EVENT_CLICKED, NULL);
+  lv_obj_set_style_bg_color(btn, LV_COLOR_LIST_BTN_BG, LV_STATE_FOCUS_KEY);
+
+  btn = lv_list_add_btn(lv_List, LV_SYMBOL_EDIT, "Edit");
+  lv_obj_add_event_cb(btn, list_item_cb, LV_EVENT_CLICKED, NULL);
+  lv_obj_set_style_bg_color(btn, LV_COLOR_LIST_BTN_BG, LV_STATE_FOCUS_KEY);
+
+  lv_list_add_text(lv_List, "Connectivity");
+
+  btn = lv_list_add_btn(lv_List, LV_SYMBOL_BLUETOOTH, "Bluetooth");
+  lv_obj_add_event_cb(btn, list_item_cb, LV_EVENT_CLICKED, NULL);
+  lv_obj_set_style_bg_color(btn, LV_COLOR_LIST_BTN_BG, LV_STATE_FOCUS_KEY);
+
+  btn = lv_list_add_btn(lv_List, LV_SYMBOL_DOWNLOAD, "Nav");
+  lv_obj_add_event_cb(btn, list_item_cb, LV_EVENT_CLICKED, NULL);
+  lv_obj_set_style_bg_color(btn, LV_COLOR_LIST_BTN_BG, LV_STATE_FOCUS_KEY);
+
+  btn = lv_list_add_btn(lv_List, LV_SYMBOL_USB, "Usb");
+  lv_obj_add_event_cb(btn, list_item_cb, LV_EVENT_CLICKED, NULL);
+  lv_obj_set_style_bg_color(btn, LV_COLOR_LIST_BTN_BG, LV_STATE_FOCUS_KEY);
+
+  btn = lv_list_add_btn(lv_List, LV_SYMBOL_DRIVE, "Hardware");
+  lv_obj_add_event_cb(btn, list_item_cb, LV_EVENT_CLICKED, NULL);
+  lv_obj_set_style_bg_color(btn, LV_COLOR_LIST_BTN_BG, LV_STATE_FOCUS_KEY);
+
+  btn = lv_list_add_btn(lv_List, LV_SYMBOL_POWER, "Power");
+  lv_obj_add_event_cb(btn, list_item_cb, LV_EVENT_CLICKED, NULL);
+  lv_obj_set_style_bg_color(btn, LV_COLOR_LIST_BTN_BG, LV_STATE_FOCUS_KEY);
+
+  lv_obj_t *right_Container = lv_obj_create(lv_scr_act());
+  lv_obj_set_size(right_Container, src_act_width - lv_obj_get_width(lv_List) - 48, src_act_height);
+  lv_obj_align(right_Container, LV_ALIGN_RIGHT_MID, 6, 6);
+
+  right_Title = lv_label_create(right_Container);
+  lv_obj_set_align(right_Title, LV_ALIGN_TOP_MID);
+
+  right_Roller = lv_roller_create(right_Container);
+  lv_obj_set_align(right_Roller, LV_ALIGN_CENTER);
+  // lv_obj_set_width(right_Roller, 180);
+  lv_obj_set_style_text_line_space(right_Roller, 30, LV_STATE_DEFAULT);
+  lv_roller_set_options(right_Roller, "A\nB\nC\nD\nE\nF\nG\n", LV_ROLLER_MODE_NORMAL);
+  lv_roller_set_selected(right_Roller, 2, LV_ANIM_ON);
+  lv_roller_set_visible_row_count(right_Roller, 5);
+  lv_obj_add_event_cb(right_Roller, roller_cb, LV_EVENT_VALUE_CHANGED, NULL);
+
+  lv_obj_t *right_Slider = lv_slider_create(right_Container);
+
+  right_Arc = lv_arc_create(right_Container);
+  lv_obj_align(right_Arc, LV_ALIGN_BOTTOM_MID, 0, 0);
+  lv_arc_set_value(right_Arc, 0);
+  lv_arc_set_rotation(right_Arc, 270);
+  lv_arc_set_bg_angles(right_Arc, 0, 360);
+  lv_obj_remove_style(right_Arc, NULL, LV_PART_KNOB);
+  lv_obj_clear_flag(right_Arc, LV_OBJ_FLAG_CLICKABLE);
+
+  right_Arc1 = lv_arc_create(right_Container);
+  lv_obj_align(right_Arc1, LV_ALIGN_BOTTOM_MID, 0, -200);
+  lv_arc_set_value(right_Arc1, 0);
+  lv_obj_add_event_cb(right_Arc1, arc_cb, LV_EVENT_VALUE_CHANGED, NULL);
+
+  // parentObj = lv_obj_create(lv_scr_act());
+  // lv_obj_set_size(parentObj, src_act_width * 2 / 3, src_act_height * 2 / 3);
+  // lv_obj_align(parentObj, LV_ALIGN_TOP_MID, 0, 0);
+  // lv_obj_set_style_bg_color(parentObj, lv_color_hex(0x99ccff), LV_STATE_DEFAULT);
+  // lv_obj_set_style_bg_color(parentObj, LV_COLOR_LIST_BTN_BG, LV_STATE_PRESSED);
+  // lv_obj_add_event_cb(parentObj, click_cb, LV_EVENT_CLICKED, NULL);
+
+  // childObj = lv_obj_create(parentObj);
+  // lv_obj_set_size(childObj, src_act_width / 3, src_act_height / 3);
+  // lv_obj_align(childObj, LV_ALIGN_CENTER, 0, 0);
+  // lv_obj_set_style_bg_color(childObj, lv_color_hex(0x003366), LV_STATE_DEFAULT);
+  // lv_obj_add_event_cb(childObj, click_cb, LV_EVENT_CLICKED, NULL);
+
+  // lv_obj_t *lableTitle = lv_label_create(parentObj);
+  // lv_obj_align_to(lableTitle, childObj, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);
+  // lv_label_set_recolor(lableTitle, true);
+  // lv_label_set_text(lableTitle, "BrainCo #ff0000 Breeze# Bravo!");
+  // lv_obj_set_style_text_font(lableTitle, &lv_font_montserrat_32, LV_PART_MAIN);
+
+  // lv_obj_t *fan_Switch = lv_switch_create(parentObj);
+  // lv_obj_align(fan_Switch, LV_ALIGN_LEFT_MID, 0, 0);
+  // lv_obj_set_style_bg_color(fan_Switch, lv_color_hex(0x00ff00), LV_STATE_DEFAULT | LV_PART_KNOB);
+  // lv_obj_set_style_bg_color(fan_Switch, lv_color_hex(0x0000FF), LV_STATE_CHECKED | LV_PART_INDICATOR);
+
+  // fan_Checkbox = lv_checkbox_create(parentObj);
+  // lv_obj_align(fan_Checkbox, LV_ALIGN_LEFT_MID, 0, 60);
+  // lv_checkbox_set_text(fan_Checkbox, "Cooling");
+  // lv_obj_set_style_text_color(fan_Checkbox, lv_color_hex(0xff0000), LV_STATE_DEFAULT);
+  // lv_obj_set_style_bg_color(fan_Checkbox, lv_color_hex(0xff0000), LV_PART_MAIN | LV_STATE_DEFAULT);
+  // lv_obj_set_style_bg_color(fan_Checkbox, lv_color_hex(0x00ff00), LV_PART_INDICATOR);
+  // lv_obj_set_style_bg_color(fan_Checkbox, lv_color_hex(0x888888), LV_PART_INDICATOR | LV_STATE_CHECKED);
+  // lv_obj_set_style_border_color(fan_Checkbox, lv_color_hex(0x00ff00), LV_PART_INDICATOR);
+  // lv_obj_set_style_border_color(fan_Checkbox, lv_color_hex(0x888888), LV_PART_INDICATOR | LV_STATE_CHECKED);
+  // lv_obj_add_event_cb(fan_Checkbox, value_change_cb, LV_EVENT_VALUE_CHANGED, NULL);
+
+  // fan_Bar = lv_bar_create(parentObj);
+  // lv_obj_align(fan_Bar, LV_ALIGN_LEFT_MID, 0, 100);
+  // lv_obj_set_size(fan_Bar, 200, 20);
+  // lv_bar_set_range(fan_Bar, 0, 100);
+  // lv_obj_set_style_anim_time(fan_Bar, 200, LV_STATE_DEFAULT);
+
+  // lv_bar_set_value(fan_Bar, 50, LV_ANIM_ON);
+
+  // lv_obj_t *fan_Spanner = lv_spinner_create(parentObj, 3000, 48);
+  // lv_obj_set_style_arc_color(fan_Spanner, lv_color_hex(0x888888), LV_PART_MAIN);
+  // lv_obj_set_style_arc_color(fan_Spanner, lv_color_hex(0xff0000), LV_PART_INDICATOR);
+  // lv_obj_set_style_arc_width(fan_Spanner, 12, LV_STATE_DEFAULT | LV_PART_MAIN);
+  // lv_obj_set_style_arc_width(fan_Spanner, 16, LV_STATE_DEFAULT | LV_PART_INDICATOR);
+  // lv_obj_set_align(fan_Spanner, LV_ALIGN_CENTER);
+
+  // fan_Led = lv_led_create(parentObj);
+  // lv_led_set_color(fan_Led, lv_color_hex(0xffff00));
+  // lv_led_set_brightness(fan_Led, LV_LED_BRIGHT_MAX);
+
+  // lv_obj_t *container = lv_obj_create(lv_scr_act());
+  // lv_obj_set_size(container, 960, 480);
+  // lv_obj_set_align(container, LV_ALIGN_CENTER);
+
+  // static lv_style_t styleHover;
+  // lv_style_init(&styleHover);
+  // lv_style_set_bg_color(&styleHover, LV_COLOR_LIST_BTN_BG);
+  // lv_obj_add_style(container, &styleHover, LV_STATE_PRESSED);
+
+  // static lv_style_t style;
+  // lv_style_init(&style);
+  // lv_style_set_bg_color(&style, lv_color_hex(0xff0000));
+  // lv_obj_add_style(container, &style, LV_STATE_DEFAULT);
+
+  // // 添加事件响应
+  // lv_obj_add_event_cb(container, event_cb, LV_EVENT_CLICKED, NULL);
+
+  // lv_obj_t *text1 = lv_label_create(container);
+  // char *str1 = "BrainCo";
+  // lv_label_set_text(text1, str1);
+  // lv_obj_align(text1, LV_ALIGN_TOP_MID, 0, 0);
+
+  // lv_obj_t *text2 = lv_label_create(container);
+  // char *str2 = "Breeze Bravo!";
+  // lv_label_set_text(text2, str2);
+  // lv_obj_align(text2, LV_ALIGN_CENTER, 0, 0);
+
+  // lv_obj_t *text3 = lv_label_create(container);
+  // char *str3 = "Breeze Bravo!";
+  // lv_label_set_text(text3, str3);
+  // lv_obj_align(text3, LV_ALIGN_BOTTOM_MID, 0, 0);
 }
 
 /**********************
@@ -297,7 +555,7 @@ static void hal_init(void)
   indev_drv_3.read_cb = lv_x11_get_mousewheel;
 #endif
   /* Set diplay theme */
-  lv_theme_t * th = lv_theme_default_init(disp, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED), LV_THEME_DEFAULT_DARK, LV_FONT_DEFAULT);
+  lv_theme_t *th = lv_theme_default_init(disp, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED), LV_THEME_DEFAULT_DARK, LV_FONT_DEFAULT);
   lv_disp_set_theme(disp, th);
 
   /* Tick init */
@@ -312,10 +570,10 @@ static void hal_init(void)
   lv_indev_set_group(enc_indev, g);
 
   /* Set a cursor for the mouse */
-  LV_IMG_DECLARE(mouse_cursor_icon);                   /*Declare the image file.*/
-  lv_obj_t * cursor_obj = lv_img_create(lv_scr_act()); /*Create an image object for the cursor*/
-  lv_img_set_src(cursor_obj, &mouse_cursor_icon);      /*Set the image source*/
-  lv_indev_set_cursor(mouse_indev, cursor_obj);        /*Connect the image  object to the driver*/
+  LV_IMG_DECLARE(mouse_cursor_icon);                  /*Declare the image file.*/
+  lv_obj_t *cursor_obj = lv_img_create(lv_scr_act()); /*Create an image object for the cursor*/
+  lv_img_set_src(cursor_obj, &mouse_cursor_icon);     /*Set the image source*/
+  lv_indev_set_cursor(mouse_indev, cursor_obj);       /*Connect the image  object to the driver*/
 }
 
 /**
@@ -338,10 +596,12 @@ static void hal_deinit(void)
  * @param data unused
  * @return never return
  */
-static void* tick_thread(void *data) {
+static void *tick_thread(void *data)
+{
   (void)data;
 
-  while(!end_tick) {
+  while (!end_tick)
+  {
     usleep(5000);
     lv_tick_inc(5); /*Tell LittelvGL that 5 milliseconds were elapsed*/
   }
